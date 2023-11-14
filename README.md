@@ -12,7 +12,13 @@ Password Genie is a secure and user-friendly password management application bui
 - **Master Password Protection:** Set and verify a master pass-key to ensure access control.
 
 ##### Usage:
-Before you can use the password management features, you need to run the set-master-password utility. Thereafter, you will type your master password into the master key field and click the verify master password button to start being able to use the app. Once your master password is successfully entered, you can then generate strong passwords and assign them to platforms. Alternatively, you can save your existing passwords and their platforms for later retrieval in case you forget. All saved data is heavily encrypted, so is safe from prying eyes.
+- Set Master Password: Run the "set-master-password" utility to establish your master password.
+- Verify Master Password: Enter your master password in the designated field and click "Verify Master Password" to unlock the app.
+- Generate Strong Passwords: Once your master password is verified, generate robust passwords tailored to your criteria.
+- Assign to Platforms: Link generated passwords to specific platforms for organized password management.
+- Save Passwords: Safely store existing passwords and their associated platforms for future retrieval.
+- Encryption Security: All saved data undergoes robust encryption, ensuring it remains confidential and secure.
+- Caution: Your master password serves as the encryption key; changing it after setting will make it impossible to retrieve saved passwords.
 
 #### Python Library/Module Dependencies:
 - `tkinter`
