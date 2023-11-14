@@ -22,12 +22,13 @@ def derive_key(master_key, salt):
 
 # GUI Setup
 app = tk.Tk()
-app.title("Password Genie")  # Keep the application name as "Password Genie"
+app.title("Password Genie")
 
 # Set the size of the main window
 app.geometry("300x400")
 
 # Set the system icon
+#app.iconphoto(True, tk.PhotoImage(file="icon.png"))
 app.iconbitmap("icon.ico")
 
 # Entry for the user's master pass-key
@@ -333,7 +334,7 @@ button_generate.place(x=10, y=160)
 
 button_hash = tk.Button(app, text="Hash Password", command=hash_password)
 ToolTip(button_hash, "Hash the entered password")
-button_hash.place(x=150, y=160)
+button_hash.place(x=170, y=160)
 
 button_save = tk.Button(app, text="Save Password", command=save_password)
 ToolTip(button_save, "Save the password for the specified platform")
@@ -341,7 +342,7 @@ button_save.place(x=10, y=190)
 
 button_retrieve = tk.Button(app, text="Retrieve Password", command=retrieve_password)
 ToolTip(button_retrieve, "Retrieve and decrypt the password for the specified platform")
-button_retrieve.place(x=150, y=190)
+button_retrieve.place(x=170, y=190)
 
 button_verify_master_password = tk.Button(app, text="Verify Master Password", command=verify_master_password)
 ToolTip(button_verify_master_password, "Verify the entered master password")

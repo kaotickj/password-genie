@@ -28,34 +28,8 @@ app.geometry("300x100")
 label_master_key = tk.Label(app, text="Master Pass-Key:")
 entry_master_key = tk.Entry(app, show="*")  # Use show="*" to hide the entered characters
 
-
-
-
 # Flag to check if the master password is set
 master_password_set = None  # Initialize as None
-
-
-# Function to handle password hashing
-def hash_password():
-    global master_password_set
-
-    if not master_password_set:
-        messagebox.showerror("Error", "Please set the initial master password first.")
-        return
-
-    password = entry_password.get()
-
-    if not password:
-        messagebox.showerror("Error", "Please enter a password to hash.")
-        return
-
-    # Hash the password using SHA-256
-    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-    digest.update(password.encode())
-    hashed_password = digest.finalize()
-
-    messagebox.showinfo("Hashed Password", f"The hashed password is: {hashed_password.hex()}")
-
 
 # Function to set the initial master password
 def set_master_password():
@@ -110,8 +84,6 @@ class ToolTip:
         if self.tooltip:
             self.tooltip.destroy()
 
-
-
 # Place widgets using the place method
 label_master_key.place(x=10, y=10)
 entry_master_key.place(x=150, y=10)
@@ -120,8 +92,6 @@ ToolTip(entry_master_key, "Enter your master pass-key")
 button_set_master_password = tk.Button(app, text="Set Master Password", command=set_master_password)
 ToolTip(button_set_master_password, "Set the initial master password")
 button_set_master_password.place(x=10, y=40)
-
-
 
 # Main Event Loop
 app.mainloop()
