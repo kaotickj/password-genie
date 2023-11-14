@@ -85,11 +85,11 @@ def verify_master_password():
                     master_password_set = True
                 else:
                     master_password_set = False
-                    messagebox.showinfo("Master Password Not Set", "The master password is not set. Please set the initial master password.")
+                    messagebox.showinfo("Master Password Not Set", "The master password is not set. Please set the initial master password by running the set-master-password utility.")
                     return
             else:
                 master_password_set = False
-                messagebox.showinfo("Master Password Not Set", "The master password is not set. Please set the initial master password.")
+                messagebox.showinfo("Master Password Not Set", "The master password is not set. Please set the initial master password by running the set-master-password utility.")
                 return
     except Exception as e:
         master_password_set = False
@@ -99,7 +99,7 @@ def verify_master_password():
 
     if not master_password_set:
         # If not set, prompt the user to set it
-        messagebox.showinfo("Master Password Not Set", "The master password is not set. Please set the initial master password.")
+        messagebox.showinfo("Master Password Not Set", "The master password is not set. Please set the initial master password by running the set-master-password utility.")
         return
 
     # Continue with the existing verification logic
@@ -120,7 +120,7 @@ def verify_master_password():
                     messagebox.showerror("Error", "Incorrect master password.")
                     master_password_set = False  # Set to False if verification fails
             else:
-                messagebox.showerror("Error", "Master password not set. Please set the initial master password.")
+                messagebox.showerror("Error", "Master password not set. Please set the initial master password by running the set-master-password utility.")
                 master_password_set = False  # Set to False if file is empty
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred while verifying the master password: {str(e)}")
@@ -131,7 +131,7 @@ def generate_password():
     global master_password_set
 
     if not master_password_set:
-        messagebox.showerror("Error", "Please set the initial master password first.")
+        messagebox.showerror("Error", "Please set the initial master password by running the set-master-password utility.")
         return
 
     length_str = entry_length.get()
@@ -164,7 +164,7 @@ def hash_password():
     global master_password_set
 
     if not master_password_set:
-        messagebox.showerror("Error", "Please set the initial master password first.")
+        messagebox.showerror("Error", "Please set the initial master password by running the set-master-password utility.")
         return
 
     password = entry_password.get()
@@ -185,7 +185,7 @@ def save_password():
     global master_password_set
 
     if not master_password_set:
-        messagebox.showerror("Error", "Please set the initial master password first.")
+        messagebox.showerror("Error", "Please set the initial master password by running the set-master-password utility.")
         return
 
     master_key = entry_master_key.get()
@@ -218,14 +218,14 @@ def retrieve_password():
     global master_password_set
 
     if not master_password_set:
-        messagebox.showerror("Error", "Please set the initial master password first.")
+        messagebox.showerror("Error", "Please set the initial master password by running the set-master-password utility.")
         return
 
     master_key = entry_master_key.get()
     platform = entry_platform.get()
 
     if not master_key or not platform:
-        messagebox.showerror("Error", "Please enter a master pass-key and platform.")
+        messagebox.showerror("Error", "Please enter your master password and platform.")
         return
 
     try:
