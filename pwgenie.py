@@ -63,6 +63,7 @@ def copy_to_clipboard():
     app.clipboard_clear()
     app.clipboard_append(password_text.get())
     app.update()
+    messagebox.showinfo("Copied to Clipboard", "The password was copied to the Clipboard.")
 
 # Flag to check if the master password is set
 master_password_set = None  # Initialize as None
@@ -153,6 +154,7 @@ def generate_password():
         password_text.delete(0, tk.END)  # Clear previous content
         password_text.insert(tk.END, password)
         password_text.config(state='readonly')  # Disable editing
+        label_password_text.config(text="Generated Password:")
         messagebox.showinfo("Generated Password", f"Your password is: {password}")
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred while generating the password: {str(e)}")
@@ -242,6 +244,13 @@ def retrieve_password():
 
                     cipher_suite = Fernet(base64.urlsafe_b64encode(key))
                     decrypted_password = cipher_suite.decrypt(encrypted_password.encode()).decode()
+                    password = decrypted_password
+
+                    # Update password_text widget and change its label
+                    password_text.config(state='normal')  # Enable editing
+                    password_text.delete(0, tk.END)  # Clear previous content
+                    password_text.insert(tk.END, decrypted_password)
+                    label_password_text.config(text="Retrieved Password:")
 
                     messagebox.showinfo("Decrypted Password", f"Your password for {platform} is: {decrypted_password}")
                     return
@@ -250,33 +259,6 @@ def retrieve_password():
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred while retrieving the password: {str(e)}")
 
-# Function to set the initial master password
-def set_master_password():
-    global master_password_set
-
-    # Check if the master password is already set
-    if master_password_set:
-        messagebox.showinfo("Master Password Set", "Master password is already set.")
-        return
-
-    master_key = entry_master_key.get()
-
-    if not master_key:
-        messagebox.showerror("Error", "Please enter a master pass-key.")
-        return
-
-    salt = secrets.token_bytes(16)  # Generate a random salt
-    hashed_master_key = derive_key(master_key, salt)
-
-    # Save the hashed master key for later verification
-    with open('master_key.txt', 'w') as file:
-        file.write(f"{salt.hex()}:{hashed_master_key.hex()}")
-
-    master_password_set = True
-    messagebox.showinfo("Master Password Set", "Initial master password set successfully.")
-
-    # Disable the "Set Master Password" button once the master password is set
-    button_set_master_password['state'] = 'disabled'
 
 # ToolTip class for adding tooltips to widgets
 class ToolTip:
@@ -360,10 +342,6 @@ button_save.place(x=10, y=190)
 button_retrieve = tk.Button(app, text="Retrieve Password", command=retrieve_password)
 ToolTip(button_retrieve, "Retrieve and decrypt the password for the specified platform")
 button_retrieve.place(x=150, y=190)
-
-#button_set_master_password = tk.Button(app, text="Set Master Password", command=set_master_password)
-#ToolTip(button_set_master_password, "Set the initial master password")
-#button_set_master_password.place(x=10, y=220)
 
 button_verify_master_password = tk.Button(app, text="Verify Master Password", command=verify_master_password)
 ToolTip(button_verify_master_password, "Verify the entered master password")
