@@ -6,10 +6,10 @@ Password Genie is a secure and user-friendly password management application bui
 ![Icon](password-genie.png)
 
 ##### Key Features:
-- Password Generation: Create random and strong passwords based on user-defined criteria.
-- Password Hashing: Hash passwords securely using SHA-256 for enhanced security.
-- Password Storage: Safely store and retrieve passwords for different platforms in an encrypted format.
-- Master Password Protection: Set and verify a master pass-key to ensure access control.
+- **Password Generation:** Create random and strong passwords based on user-defined criteria.
+- **Password Hashing:** Hash passwords securely using SHA-256 for enhanced security.
+- **Password Storage:** Safely store and retrieve passwords for different platforms in an encrypted format.
+- **Master Password Protection:** Set and verify a master pass-key to ensure access control.
 
 ##### Usage:
 Before you can use the password management features, you need to run the set-master-password utility. Thereafter, you will type your master password into the master key field and click the verify master password button to start being able to use the app. Once your master password is successfully entered, you can then generate strong passwords and assign them to platforms. Alternatively, you can save your existing passwords and their platforms for later retrieval in case you forget. All saved data is heavily encrypted, so is safe from prying eyes.
@@ -30,4 +30,6 @@ Before you can use the password management features, you need to run the set-mas
 Password Genie is developed and maintained by Kaotick Jay, a seasoned cybersecurity professional with 30 years of experience. 
 
 #### License:
-Password Genie is licensed under GNU/GPL3. Feel free to contribute, modify, and distribute it in accordance with the terms of the license.
+Password Genie is licensed under [GNU/GPL3](LICENSE). Feel free to contribute, modify, and distribute it in accordance with the terms of the license.
+
+#### [Code of Conduct](CODE_OF_CONDUCT.md) | [Contributing Guidelines](CONTRIBUTING.md)
