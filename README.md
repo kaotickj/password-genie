@@ -2,7 +2,8 @@
 [![License](https://img.shields.io/badge/License-GPL3-blue.svg)](https://opensource.org/licenses/GPL-3.0) [![Version](https://img.shields.io/badge/Version-1.0.12-brightgreen.svg)](https://github.com/kaotickj/password-genie/releases/tag/v1.0.12)
 
 Password Genie is a secure and user-friendly password management application built with Python and Tkinter. It allows users to generate strong passwords, hash and save passwords for various platforms, and retrieve them securely.
-[![Icon](password-genie.png)]
+
+![Icon](password-genie.png)
 
 ##### Key Features:
 - Password Generation: Create random and strong passwords based on user-defined criteria.
