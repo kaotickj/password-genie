@@ -66,7 +66,7 @@ pip install cryptography
 ![Set Character Requirements](./img/generate-password.png)
 
 ### Save Passwords:
-After generating a strong password, you can assign it to a platform and save it in as encrypted text for later retrieval.
+After generating a strong password, you can assign it to a platform and save it as encrypted text for later retrieval.
  
 1. Click the "Copy to Clipboard button to copy the generated password to the clipboard.
 
