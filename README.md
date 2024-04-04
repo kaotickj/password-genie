@@ -13,6 +13,8 @@ Password Genie is a secure and user-friendly password management application bui
 - **Master Password Protection:** Set and verify a master pass-key to ensure access control.
 
 ## Python Library/Module Dependencies:
+If you are running the program from the python source scripts, you will need to have the python library dependencies installed. Note that this is only true if running the program from source - the binaries include the dependenciess in the executable.
+
 - `tkinter`: This is a standard Python library for creating GUI applications. It is usually included with Python installations, so you don't need to install it separately. if for some reason you do not have tkinter as a standard library, you can install it with pip:
 ```
 pip install tkinter
@@ -95,7 +97,9 @@ After generating a strong password, you can assign it to a platform and save it 
 
 
 #### About the Author:
-Password Genie is developed and maintained by Kaotick Jay, a seasoned cybersecurity professional with 30 years of experience. 
+Password Genie is developed and maintained by Kaotick Jay, a seasoned cybersecurity professional with 30 years of experience.
+
+[![Try Hack Me](https://tryhackme-badges.s3.amazonaws.com/kaotickj.png)](https://tryhackme.com/p/kaotickj) [![Hack the Box](https://www.hackthebox.eu/badge/image/476578)](https://app.hackthebox.com/profile/476578)  
 
 #### License:
 Password Genie is licensed under [GNU/GPL3](LICENSE). Feel free to contribute, modify, and distribute it in accordance with the terms of the license.
