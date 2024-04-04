@@ -57,14 +57,13 @@ pip install cryptography
 
 ![Set Password Length](./img/set-password-length.png)
 
-
 3. Set character requirements for generated passwords.  The default setting is to generate passwords that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
 
 ![Set Character Requirements](./img/character-requirements.png)
 
 4. Click the "Generate Password" button to generate a password consisting of random characters using the parameters you set.
 
-![Set Character Requirements](./img/generate-password.png)
+![Generate Password](./img/generate-password.png)
 
 ### Save Passwords:
 After generating a strong password, you can assign it to a platform and save it as encrypted text for later retrieval.
@@ -88,7 +87,11 @@ After generating a strong password, you can assign it to a platform and save it 
 
 2. Type the platform for which you want to retrieve the saved password into the Platform Field.
 
+![Platform Field](./img/platform-field.png)
+
 3. Click the "Retrieve Password" button to decrypt and show the platform's saved password.
+
+![Decrypted Password](./img/decrypted-password.png)
 
 
 #### About the Author:
