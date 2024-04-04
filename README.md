@@ -32,8 +32,11 @@ pip install cryptography
 #### Run the "set-master-password" utility to establish your master password:
 
 1. Enter the master password that you want to use for encrypting and retrieving saved passwords:
+
 ![Enter Master Password](./img/enter-master-password.png)
+
 2. Click "Set Master Password" button:
+
 ![Set Master Password](./img/set-master-pw-button.png)
 
 ![Set Master PW Success](./img/set-pw-success.png)
@@ -43,29 +46,36 @@ pip install cryptography
 #### Run the "pwgenie" utility to generate, hash, save or retrieve passwords:
 
 1. Verify Master Password: Enter your master password in the designated field and click "Verify Master Password" to unlock the app. The master password will be used to encrypt and retrieve saved passwords:
+
 ![Enter Master PW to Verify](./img/enter-verify-pw.png)
 
 2. Set the password length by changing the relevant field. The default setting is 12 characters 
+
 ![Set Password Length](./img/set-password-length.png)
 
 ![Verify Succesful](./img/verify-success.png)
 
 3. Set character requirements for generated passwords.  The default setting is to generate password that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
+
 ![Set Character Requirements](./img/character-requirements.png)
 
 4. Click the "Generate Password" button to generate a password consisting of random characters using the parameters you set.
+
 ![Set Character Requirements](./img/generate-password.png)
 
 ### Save Passwords:
 After generating a strong password, you can assign it to a platform and save it in as encrypted text for later retrieval.
  
 1. Click the "Copy to Clipboard button to copy the generated password to the clipboard.
+
 ![Copied to Clipboard](./img/copied-to-clipboard.png)
 
 2. Paste the password into the field labelled "Password:" using your keyboard hotkey
+
 ![Password Field](./img/password-field.png)
 
 3. Enter the platform or site that the password is for in the field labelled "Platform:"
+
 ![Platform Field](./img/platform-field.png)
 
 4. Click the "Save Password" button to encrypt and save the password and the associated platform.
