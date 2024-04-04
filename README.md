@@ -47,24 +47,22 @@ pip install cryptography
 ### Generate Strong Passwords: 
 #### Run the "pwgenie" utility to generate, hash, save or retrieve passwords:
 
-1. Enter and verify your master password if you haven't already done so (see above).
-
-2. Verify Master Password: Enter your master password in the designated field and click "Verify Master Password" to unlock the app. The master password will be used to encrypt and retrieve saved passwords:
+1. Verify Master Password: Enter your master password in the designated field and click "Verify Master Password" to unlock the app. The master password will be used to encrypt and retrieve saved passwords:
 
 ![Enter Master PW to Verify](./img/enter-verify-pw.png)
 
 ![Verify Succesful](./img/verify-success.png)
 
-3. Set the password length by changing the relevant field. The default setting is 12 characters 
+2. Set the password length by changing the relevant field. The default setting is 12 characters 
 
 ![Set Password Length](./img/set-password-length.png)
 
 
-4. Set character requirements for generated passwords.  The default setting is to generate passwords that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
+3. Set character requirements for generated passwords.  The default setting is to generate passwords that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
 
 ![Set Character Requirements](./img/character-requirements.png)
 
-5. Click the "Generate Password" button to generate a password consisting of random characters using the parameters you set.
+4. Click the "Generate Password" button to generate a password consisting of random characters using the parameters you set.
 
 ![Set Character Requirements](./img/generate-password.png)
 
