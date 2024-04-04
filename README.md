@@ -50,11 +50,12 @@ pip install cryptography
 
 ![Enter Master PW to Verify](./img/enter-verify-pw.png)
 
+![Verify Succesful](./img/verify-success.png)
+
 2. Set the password length by changing the relevant field. The default setting is 12 characters 
 
 ![Set Password Length](./img/set-password-length.png)
 
-![Verify Succesful](./img/verify-success.png)
 
 3. Set character requirements for generated passwords.  The default setting is to generate password that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
 
