@@ -57,7 +57,7 @@ pip install cryptography
 ![Set Password Length](./img/set-password-length.png)
 
 
-3. Set character requirements for generated passwords.  The default setting is to generate password that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
+3. Set character requirements for generated passwords.  The default setting is to generate passwords that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
 
 ![Set Character Requirements](./img/character-requirements.png)
 
