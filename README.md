@@ -96,7 +96,7 @@ After generating a strong password, you can assign it to a platform and save it 
 ![Decrypted Password](./img/decrypted-password.png)
 
 
-#### About the Author:
+#### About the Developer:
 Password Genie is developed and maintained by Kaotick Jay, a seasoned cybersecurity professional with 30 years of experience.
 
 [![Try Hack Me](https://tryhackme-badges.s3.amazonaws.com/kaotickj.png)](https://tryhackme.com/p/kaotickj) [![Hack the Box](https://www.hackthebox.eu/badge/image/476578)](https://app.hackthebox.com/profile/476578)  
