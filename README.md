@@ -40,6 +40,7 @@ pip install cryptography
 ![Set Master Password](./img/set-master-pw-button.png)
 
 ![Set Master PW Success](./img/set-pw-success.png)
+
 3. ***Do not forget your master password*** because you will not be able to recover it, and cannot retrieve saved passwords without it.
 
 ### Generate Strong Passwords: 
