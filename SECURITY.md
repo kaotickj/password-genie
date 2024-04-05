@@ -4,7 +4,7 @@
 
 **If you believe you have found a security vulnerability in this project, please report it to us as soon as possible.**
 
-To report a security vulnerability, please email us at [security@example.com](mailto:kaotickj@gmail.com) with a detailed description of the vulnerability and steps to reproduce it. Please do not disclose the vulnerability publicly until we have had a chance to address it.
+To report a security vulnerability, please email us at [kaotickj@gmail.com](mailto:kaotickj@gmail.com) with a detailed description of the vulnerability and steps to reproduce it. Please do not disclose the vulnerability publicly until we have had a chance to address it.
 
 ## Supported Versions
 
@@ -24,4 +24,4 @@ We will disclose security vulnerabilities publicly in the release notes of the a
 
 ## Contact Us
 
-If you have any questions or concerns about our security policy, please contact us at [security@example.com](mailto:security@example.com).
+If you have any questions or concerns about our security policy, please contact us at [kaotickj@gmail.com](mailto:kaotickj@gmail.com).
