@@ -106,4 +106,4 @@ Password Genie is developed and maintained by Kaotick Jay, a seasoned cybersecur
 #### License:
 Password Genie is licensed under [GNU/GPL3](LICENSE). Feel free to contribute, modify, and distribute it in accordance with the terms of the license.
 
-#### [Code of Conduct](CODE_OF_CONDUCT.md) | [Contributing Guidelines](CONTRIBUTING.md)
+#### [Code of Conduct](CODE_OF_CONDUCT.md) | [Contributing Guidelines](CONTRIBUTING.md) | [Issue Reporting Policy](ISSUE_REPORTING_POLICY.md)
