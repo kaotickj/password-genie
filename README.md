@@ -29,6 +29,8 @@ pip install tkinter
 pip install cryptography 
 ```
 
+## Issue Reporting Policy
+Before opening an issue, please review our [Issue Reporting Policy](ISSUE_REPORTING_POLICY.md).
 
 ## Usage:
 ### Set the Master Password:
