@@ -10,6 +10,7 @@ from cryptography.fernet import Fernet
 import webbrowser
 import sys
 import os
+from datetime import datetime
 
 # Key derivation
 def derive_key(master_key, salt):
@@ -25,14 +26,44 @@ def derive_key(master_key, salt):
 # GUI setup
 app = tk.Tk()
 app.title("Password Genie")
-app.geometry("300x400")
+if sys.platform.startswith("linux"):
+    app.geometry("330x400")
+else:
+    app.geometry("300x400")
+
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-app.iconbitmap(resource_path("icon.ico"))
+# Platform-aware window icon setter
+def set_window_icon():
+    icon_ico = resource_path("icon.ico")
+    icon_png = resource_path("icon.png")
+
+    if sys.platform.startswith("win"):
+        if os.path.exists(icon_ico):
+            try:
+                app.iconbitmap(icon_ico)
+            except Exception as e:
+                print(f"Warning: Failed to set Windows .ico icon: {e}")
+        else:
+            print("Notice: icon.ico not found. Skipping icon set on Windows.")
+    else:
+        try:
+            from tkinter import PhotoImage
+            if os.path.exists(icon_png):
+                icon_image = PhotoImage(file=icon_png)
+                app.iconphoto(False, icon_image)
+            else:
+                print("Notice: icon.png not found. Skipping icon set on non-Windows platform.")
+        except Exception as e:
+            print(f"Warning: Failed to set PNG window icon: {e}")
+
+set_window_icon()
+
 label_master_key = tk.Label(app, text="Master Pass-Key:")
 entry_master_key = tk.Entry(app, show="*")
 
@@ -249,8 +280,10 @@ def show_about_dialog():
     tk.Label(about_window, text="Version 1.2.0").pack()
     tk.Label(about_window, text="Created by Kaotick Jay").pack()
     tk.Label(about_window, text="License: GNU/GPL3").pack()
-    tk.Label(about_window, text="© 2023 Kaotick Jay").pack()
-
+    start_year = 2023
+    current_year = datetime.now().year
+    year_display = f"{start_year}–{current_year}" if current_year > start_year else str(start_year)
+    tk.Label(about_window, text=f"© {year_display} Kaotick Jay").pack()
     def open_github(event):
         webbrowser.open_new("https://github.com/kaotickj")
 
@@ -341,3 +374,4 @@ about_menu.add_cascade(label="Donate", menu=donate_menu)
 
 check_and_initialize_master_password()
 app.mainloop()
+
