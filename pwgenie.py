@@ -270,6 +270,9 @@ def show_instructions():
     )
     messagebox.showinfo("Instructions for Use", instructions)
 
+def open_donation_link(url):
+    webbrowser.open_new(url)
+
 def check_and_initialize_master_password():
     global master_password_set
     try:
@@ -329,6 +332,12 @@ menu_bar.add_cascade(label="Help", menu=about_menu)
 about_menu.add_command(label="Instructions for Use", command=show_instructions)
 about_menu.add_separator()
 about_menu.add_command(label="About Password Genie", command=show_about_dialog)
+donate_menu = tk.Menu(about_menu, tearoff=0)
+donate_menu.add_command(label="GitHub: @kaotickj", command=lambda: open_donation_link("https://github.com/sponsors/kaotickj"))
+donate_menu.add_command(label="Patreon: KaotickJay", command=lambda: open_donation_link("https://patreon.com/KaotickJay"))
+donate_menu.add_command(label="PayPal: Donate Here", command=lambda: open_donation_link("https://paypal.me/kaotickj"))
+
+about_menu.add_cascade(label="Donate", menu=donate_menu)
 
 check_and_initialize_master_password()
 app.mainloop()
