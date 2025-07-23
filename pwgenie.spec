@@ -5,7 +5,7 @@ a = Analysis(
     ['pwgenie.py'],
     pathex=[],
     binaries=[],
-    datas=[('icon.ico', '.')],
+    datas=[('icon.ico', '.'), ('icon.png', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
