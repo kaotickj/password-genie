@@ -2,7 +2,7 @@
 [![GitHub release](https://img.shields.io/github/release/kaotickj/password-genie.svg)](https://github.com/kaotickj/password-genie/releases) [![GitHub license](https://img.shields.io/github/license/kaotickj/password-genie.svg)](https://github.com/kaotickj/password-genie/blob/master/LICENSE) [![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/) [![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/kaotickj/password-genie)](https://github.com/kaotickj/password-genie) [![GitHub last commit](https://img.shields.io/github/last-commit/kaotickj/password-genie)](https://github.com/kaotickj/password-genie/commits/master)
 
 
-Password Genie is a secure and user-friendly password management application built with Python and Tkinter. It allows users to generate strong passwords, hash and save passwords for various platforms, and retrieve them securely.
+Password Genie is a secure and user-friendly password management application built with Python. It allows users to generate strong passwords, hash and save passwords for various platforms, and retrieve them securely.
 
 ![Icon](./img/password-genie.png)
 
@@ -15,11 +15,6 @@ Password Genie is a secure and user-friendly password management application bui
 ## Python Library/Module Dependencies:
 If you are running the program from the python source scripts, you will need to have the python library dependencies installed. Note that this is only true if running the program from source - the binaries include the dependenciess in the executable.
 
-- `tkinter`: This is a standard Python library for creating GUI applications. It is usually included with Python installations, so you don't need to install it separately. if for some reason you do not have tkinter as a standard library, you can install it with pip:
-```
-pip install tkinter
-```
- 
 - `messagebox` from the tkinter library: messagebox is a submodule of the tkinter library.
 - `secrets`: This module is used for generating cryptographically strong random numbers suitable for managing data such as passwords, account authentication, and security tokens. It is included in the Python standard library, so you don't need to install it separately. 
 - `string`: This module contains a collection of string constants and utility functions. It is part of the Python standard library, so you don't need to install it separately.
