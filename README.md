@@ -1,104 +1,76 @@
 # Password Genie
-[![GitHub release](https://img.shields.io/github/release/kaotickj/password-genie.svg)](https://github.com/kaotickj/password-genie/releases) [![GitHub license](https://img.shields.io/github/license/kaotickj/password-genie.svg)](https://github.com/kaotickj/password-genie/blob/master/LICENSE) [![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/) [![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/kaotickj/password-genie)](https://github.com/kaotickj/password-genie) [![GitHub last commit](https://img.shields.io/github/last-commit/kaotickj/password-genie)](https://github.com/kaotickj/password-genie/commits/master)
 
+Local password generator and encrypted credential vault. The desktop app uses the newer dark PyQt6 interface; the Android app provides a native, scrollable interface with the same schema-1 credential format. Licensed under [GPL v3](LICENSE).
 
-Password Genie is a secure and user-friendly password management application built with Python. It allows users to generate strong passwords, hash and save passwords for various platforms, and retrieve them securely.
+## Run from source
 
-![Icon](./img/password-genie.png)
+Python 3.12 is the CI build target. Python 3.11+ is required.
 
-## Key Features:
-- **Password Generation:** Create random and strong passwords based on user-defined criteria.
-- **Password Hashing:** Hash passwords securely using SHA-256 for enhanced security.
-- **Password Storage:** Safely store and retrieve passwords for different platforms in an encrypted format. All saved data undergoes robust encryption, ensuring it remains confidential and secure.
-- **Master Password Protection:** Set and verify a master pass-key to ensure access control.
-
-## Python Library/Module Dependencies:
-If you are running the program from the python source scripts, you will need to have the python library dependencies installed. Note that this is only true if running the program from source - the binaries include the dependenciess in the executable.
-
-- `messagebox` from the tkinter library: messagebox is a submodule of the tkinter library.
-- `secrets`: This module is used for generating cryptographically strong random numbers suitable for managing data such as passwords, account authentication, and security tokens. It is included in the Python standard library, so you don't need to install it separately. 
-- `string`: This module contains a collection of string constants and utility functions. It is part of the Python standard library, so you don't need to install it separately.
-- `base64`: This module provides functions for encoding binary data to ASCII characters and decoding ASCII characters back to binary data. It is part of the Python standard library, so you don't need to install it separately.
-- `cryptography`: This library provides cryptographic recipes and primitives to Python developers. It can be installed using pip:
-```
-pip install cryptography 
+```sh
+python3 -m venv .venv
+# Linux/macOS
+. .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python pwgenie.py
 ```
 
-## Issue Reporting Policy
-Before opening an issue, please review our [Issue Reporting Policy](ISSUE_REPORTING_POLICY.md).
+On first run the app creates an **empty** `vault.db`, then offers **Set Master Password**. On later runs, enter the existing passkey and choose **Verify Passkey**. No separate master-key utility is needed. Save credentials by platform and username, retrieve them, or generate passwords of 1–4096 characters. Character checkboxes choose the sampling alphabet; they do not guarantee every selected category appears. SHA-256 produces a fingerprint, not reversible encryption or a password-storage hash.
 
-## Usage:
-### Set the Master Password:
-#### Run the "set-master-password" utility to establish your master password:
+Keep the master passkey safe: it cannot be recovered. Editing the passkey locks the desktop vault. Android also locks when the app goes into the background. There is no automatic synchronization between devices.
 
-1. Enter the master password that you want to use for encrypting and retrieving saved passwords:
+## Vault location and existing users
 
-![Enter Master Password](./img/enter-master-password.png)
+New desktop vaults are stored in a writable per-user location:
 
-2. Click "Set Master Password" button:
+| Platform | Default location |
+| --- | --- |
+| Linux | `$XDG_DATA_HOME/PasswordGenie/vault.db`, or `~/.local/share/PasswordGenie/vault.db` |
+| Windows | `%LOCALAPPDATA%\PasswordGenie\vault.db` |
+| macOS | `~/Library/Application Support/PasswordGenie/vault.db` |
+| Android | App-private no-backup storage; uninstalling deletes it |
 
-![Set Master Password](./img/set-master-pw-button.png)
+An existing `vault.db` beside the desktop source or executable is used in place for portable compatibility. Installed apps do not copy vaults automatically. Set `PASSWORD_GENIE_VAULT` to an existing vault's absolute path to use it explicitly, for example:
 
-![Set Master PW Success](./img/set-pw-success.png)
+```sh
+PASSWORD_GENIE_VAULT=/absolute/path/to/vault.db python pwgenie.py
+```
 
-3. ***Do not forget your master password*** because you will not be able to recover it, and cannot retrieve saved passwords without it.
+Back up your own vault while the application is closed before trying a new version. Schema-1 data and its 100,000-iteration PBKDF2-HMAC-SHA256 + Fernet format are preserved; unsupported schemas produce an error and are not overwritten. Password values retain leading/trailing whitespace; master passkeys retain the prior UI's trimming behavior. Service names and usernames remain unencrypted in the database, as in v2.0.
 
-### Generate Strong Passwords: 
-#### Run the "pwgenie" utility to generate, hash, save or retrieve passwords:
+Your vault, its SQLite sidecars/backups, signing keys, and unrelated sensitive documents must stay outside Git and build artifacts. `.gitignore` and CI check this. Build scripts explicitly include app code and icons, never whole working folders.
 
-1. Verify Master Password: Enter your master password in the designated field and click "Verify Master Password" to unlock the app. The master password will be used to encrypt and retrieve saved passwords:
+## Build installers
 
-![Enter Master PW to Verify](./img/enter-verify-pw.png)
+```sh
+python -m pip install -r requirements-build.txt
+python scripts/build_desktop.py
+```
 
-![Verify Succesful](./img/verify-success.png)
+Run on the destination OS: PyInstaller does not cross-compile desktop executables.
 
-2. Set the password length by changing the relevant field. The default setting is 12 characters 
+- **Linux:** produces `.deb` and portable `.tar.gz` packages. CI builds on Ubuntu 22.04 x86_64 (glibc 2.35+). Install the `.deb` with `sudo apt install ./dist/PasswordGenie-*.deb`; launch from the application menu. For the tarball, extract and run `PasswordGenie/PasswordGenie`; install the shared libraries listed in `scripts/build_desktop.py` if needed. Local builds require glibc at least as new as their build host.
+- **Windows x64:** install Inno Setup 6 before building. Produces a per-user setup `.exe` with uninstall support. The user vault remains outside the installation directory.
+- **macOS:** produces an `.app` in a `.dmg` with an Applications shortcut. CI builds the architecture of `macos-14`; artifact names identify it. The current installer is not Developer ID signed or notarized.
+- **Android 8.0+:** native Java app, JDK 17, Android SDK 36/build tools 35.0.0, Gradle 8.13. In `android/`, run `gradle testDebugUnitTest lintDebug assembleDebug`. The installable debug APK is for testing. Release APKs require your persistent signing key. Do not distribute a newly generated debug key as a stable release.
 
-![Set Password Length](./img/set-password-length.png)
+## Workflows and releases
 
-3. Set character requirements for generated passwords.  The default setting is to generate passwords that consist of upper and lowercase letters, numbers (digits), and special characters (punctuation). 
+[Build installers](.github/workflows/build.yml) runs desktop tests/builds and Android unit tests/lint/APK builds for pushes, pull requests, and manual dispatch. Artifacts are downloadable from the workflow run. A `v2.1.0` tag additionally builds a signed Android APK and creates a **draft** GitHub release with all installers and SHA-256 checksums only after every build succeeds. It never overwrites an existing release.
 
-![Set Character Requirements](./img/character-requirements.png)
+Configure repository Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` using a persistent release keystore. Missing secrets fail the release job instead of publishing an unsigned APK. Keep the keystore and passwords out of the repository. Windows Authenticode signing and macOS Developer ID signing/notarization still need configuration before a fully signed public release.
 
-4. Click the "Generate Password" button to generate a password consisting of random characters using the parameters you set.
+Before tagging: update `vault_core.VERSION`, Android `versionName`/`versionCode`, and release notes; verify the installers on each platform, including an Android device/emulator. The release tag must match the source version. Review and publish the draft after installation tests pass. See [reconciliation notes](RECONCILIATION.md) and [release notes](RELEASE_NOTES.md).
 
-![Generate Password](./img/generate-password.png)
+## Tests
 
-### Save Passwords:
-After generating a strong password, you can assign it to a platform and save it as encrypted text for later retrieval.
- 
-1. Click the "Copy to Clipboard button to copy the generated password to the clipboard.
+```sh
+QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v
+python scripts/check_private_files.py
+# after a Linux build
+python scripts/smoke_frozen.py
+```
 
-![Copied to Clipboard](./img/copied-to-clipboard.png)
+Tests use temporary vaults and synthetic credentials. They never open a real user vault. Android crypto tests include a Python-produced fixture with Unicode and a binary salt containing `:` to guard legacy compatibility.
 
-2. Paste the password into the field labelled "Password:" using your keyboard hotkey
-
-![Password Field](./img/password-field.png)
-
-3. Enter the platform or site that the password is for in the field labelled "Platform:"
-
-![Platform Field](./img/platform-field.png)
-
-4. Click the "Save Password" button to encrypt and save the password and the associated platform.
-
-### Retrieve Passwords:
-1. Enter and verify your master password if you haven't already done so (see above).
-
-2. Type the platform for which you want to retrieve the saved password into the Platform Field.
-
-![Platform Field](./img/platform-field.png)
-
-3. Click the "Retrieve Password" button to decrypt and show the platform's saved password.
-
-![Decrypted Password](./img/decrypted-password.png)
-
-
-#### About the Developer:
-Password Genie is developed and maintained by Kaotick Jay, a seasoned cybersecurity professional with 30 years of experience.
-
-[![Try Hack Me](https://tryhackme-badges.s3.amazonaws.com/kaotickj.png)](https://tryhackme.com/p/kaotickj) [![Hack the Box](https://www.hackthebox.eu/badge/image/476578)](https://app.hackthebox.com/profile/476578)  
-
-#### License:
-Password Genie is licensed under [GNU/GPL3](LICENSE). Feel free to contribute, modify, and distribute it in accordance with the terms of the license.
-
-#### [Code of Conduct](CODE_OF_CONDUCT.md) | [Contributing Guidelines](CONTRIBUTING.md) | [Issue Reporting Policy](ISSUE_REPORTING_POLICY.md)
+[Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Issue policy](ISSUE_REPORTING_POLICY.md)
