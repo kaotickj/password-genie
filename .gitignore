@@ -1,0 +1,37 @@
+# Private user data, backups, and SQLite sidecars must never be committed.
+*.db
+*.db-*
+*.sqlite*
+*.db.*
+vault*
+!vault_core.py
+passwords.txt
+master_key*
+*.pem
+*.key
+*.jks
+*.keystore
+.env*
+# Local environments, caches, and generated packages
+.venv/
+venv/
+source/Lib/
+source/Scripts/
+__pycache__/
+*.py[cod]
+build/
+dist/
+.idea/
+.DS_Store
+*.exe
+*.apk
+*.aab
+*.dmg
+*.deb
+*.AppImage
+.gradle/
+local.properties
+# Sensitive unrelated document in the attached working folder
+Silver Key Realty.pdf
+# PyInstaller CLI-generated specifications
+*.spec

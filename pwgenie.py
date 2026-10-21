@@ -1,635 +1,417 @@
-import tkinter as tk
-from tkinter import messagebox, ttk, Toplevel, Text, Scrollbar, RIGHT, Y, BOTH, END
-import secrets
-import string
-import base64
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.fernet import Fernet
-import webbrowser
 import sys
 import os
+import secrets
+import string
 from datetime import datetime
-import sqlite3
 
-SCHEMA_VERSION = 1
+from PyQt6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QCheckBox,
+    QComboBox,
+    QMessageBox,
+    QGroupBox,
+    QMenu,
+    QTextEdit,
+    QDialog,
+    QScrollArea,
+)
+from PyQt6.QtGui import (
+    QAction,
+    QIcon,
+)
 
-# === Database connection helper ===
-if getattr(sys, 'frozen', False):
-    # Running as a PyInstaller bundle
-    APP_DIR = os.path.dirname(sys.executable)
-else:
-    # Running in normal Python environment
-    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+import webbrowser
 
-DB_PATH = os.path.join(APP_DIR, "vault.db")
+from vault_core import Vault, VERSION
 
-
-def get_db_connection():
-    return sqlite3.connect(DB_PATH)
-
-
-def initialize_db():
-    print(f"Generating Database: First run - Vault database tables are being generated.")
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    # Create schema_version table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER NOT NULL
-        )
-    ''')
-
-    # Set initial schema version only if table is empty
-    c.execute("SELECT COUNT(*) FROM schema_version")
-    if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
-
-    # Other tables
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS master_key (
-            id INTEGER PRIMARY KEY,
-            salt BLOB NOT NULL,
-            hashed_master_key BLOB NOT NULL
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS credentials (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            service TEXT NOT NULL,
-            username TEXT NOT NULL,
-            password_encrypted BLOB NOT NULL
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def check_schema_version():
-    try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("SELECT version FROM schema_version LIMIT 1")
-        row = c.fetchone()
-        conn.close()
+# ────────────────────────────────────────────────
+# Main Window
+# ────────────────────────────────────────────────
+class PasswordGenie(QMainWindow):
+    def __init__(self, vault=None):
+        super().__init__()
+        self.vault = vault if vault is not None else Vault()
+        self.setWindowTitle("Password Genie")
+        self.resize(460, 540)
 
-        if not row:
-            raise Exception("Missing schema version entry.")
+        self.try_set_icon()
 
-        current_version = row[0]
-        if current_version != SCHEMA_VERSION:
-            messagebox.showerror(
-                "Schema Version Error",
-                f"Expected schema version {SCHEMA_VERSION}, but found version {current_version}.\n"
-                f"Please update the database or application."
-            )
-            sys.exit(1)
-    except sqlite3.OperationalError as e:
-        messagebox.showerror("Database Error", f"Missing schema_version table.\n\nError: {e}")
-        sys.exit(1)
-    except Exception as e:
-        messagebox.showerror("Schema Check Error", str(e))
-        sys.exit(1)
+        self.master_password_verified = False
 
+        self.init_ui()
+        self.check_and_initialize_master_password()
 
-# === Key derivation ===
-def derive_key(master_key, salt):
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        iterations=100000,
-        salt=salt,
-        length=32,
-        backend=default_backend()
-    )
-    return kdf.derive(master_key.encode())
-
-
-if not os.path.exists(DB_PATH):
-    initialize_db()
-else:
-    check_schema_version()
-
-# === GUI setup ===
-app = tk.Tk()
-app.title("Password Genie")
-if sys.platform.startswith("linux"):
-    app.geometry("440x500")
-else:
-    app.geometry("420x480")
-
-
-def resource_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-
-
-def set_window_icon():
-    icon_ico = resource_path("icon.ico")
-    icon_png = resource_path("icon.png")
-    if sys.platform.startswith("win"):
-        if os.path.exists(icon_ico):
-            try:
-                app.iconbitmap(icon_ico)
-            except Exception as e:
-                print(f"Warning: Failed to set Windows .ico icon: {e}")
+    def try_set_icon(self):
+        if sys.platform.startswith("win"):
+            icon_file = "icon.ico"
         else:
-            print("Notice: icon.ico not found. Skipping icon set on Windows.")
-    else:
+            icon_file = "icon.png"
+
+        icon_path = os.path.join(APP_DIR, icon_file)
+
+        if os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+            self.setWindowIcon(icon)
+            QApplication.setWindowIcon(icon)
+
+    def init_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setSpacing(12)
+        layout.setContentsMargins(16, 12, 16, 12)
+
+        # ── Master Passkey ───────────────────────────────
+        row_master = QHBoxLayout()
+        lbl_master = QLabel("Master Passkey:")
+        lbl_master.setMinimumWidth(130)
+        self.entry_master = QLineEdit()
+        self.entry_master.setEchoMode(QLineEdit.EchoMode.Password)
+        self.entry_master.textChanged.connect(self.lock_vault)
+        btn_verify = QPushButton("Verify Passkey")
+        btn_verify.clicked.connect(self.verify_master_password)
+
+        row_master.addWidget(lbl_master)
+        row_master.addWidget(self.entry_master)
+        row_master.addWidget(btn_verify)
+        layout.addLayout(row_master)
+
+        # ── Generate section ─────────────────────────────
+        group_gen = QGroupBox("Generate Password")
+        lay_gen = QVBoxLayout(group_gen)
+        lay_gen.setSpacing(10)
+
+        row_len = QHBoxLayout()
+        lbl_len = QLabel("Password Length:")
+        self.entry_length = QLineEdit("16")
+        self.entry_length.setMaximumWidth(80)
+        row_len.addWidget(lbl_len)
+        row_len.addWidget(self.entry_length)
+        lay_gen.addLayout(row_len)
+
+        row_req = QHBoxLayout()
+        lbl_req = QLabel("Include:")
+        self.chk_letters = QCheckBox("Letters")
+        self.chk_digits = QCheckBox("Digits")
+        self.chk_punct = QCheckBox("Punctuation")
+        self.chk_letters.setChecked(True)
+        self.chk_digits.setChecked(True)
+        self.chk_punct.setChecked(True)
+
+        row_req.addWidget(lbl_req)
+        row_req.addWidget(self.chk_letters)
+        row_req.addWidget(self.chk_digits)
+        row_req.addWidget(self.chk_punct)
+        lay_gen.addLayout(row_req)
+
+        btn_generate = QPushButton("Generate Password")
+        btn_generate.clicked.connect(self.generate_password)
+        lay_gen.addWidget(btn_generate)
+        layout.addWidget(group_gen)
+
+        # ── Vault fields ─────────────────────────────────
+        row_platform = QHBoxLayout()
+        lbl_plat = QLabel("Platform:")
+        self.entry_platform = QLineEdit()
+        row_platform.addWidget(lbl_plat)
+        row_platform.addWidget(self.entry_platform)
+        layout.addLayout(row_platform)
+
+        row_user = QHBoxLayout()
+        lbl_user = QLabel("Username:")
+        self.entry_username = QLineEdit()
+        row_user.addWidget(lbl_user)
+        row_user.addWidget(self.entry_username)
+        layout.addLayout(row_user)
+
+        row_pass = QHBoxLayout()
+        lbl_pass = QLabel("Password:")
+        self.entry_password = QLineEdit()
+        self.entry_password.setEchoMode(QLineEdit.EchoMode.Password)
+        row_pass.addWidget(lbl_pass)
+        row_pass.addWidget(self.entry_password)
+        layout.addLayout(row_pass)
+
+        # Saved platforms - starts disabled
+        row_saved = QHBoxLayout()
+        lbl_saved = QLabel("Saved Platforms:")
+        self.combo_platforms = QComboBox()
+        self.combo_platforms.setEditable(False)
+        self.combo_platforms.setEnabled(False)  # Disabled until verified
+        self.combo_platforms.currentTextChanged.connect(self.on_platform_selected)
+        row_saved.addWidget(lbl_saved)
+        row_saved.addWidget(self.combo_platforms)
+        layout.addLayout(row_saved)
+
+        # Generated / Retrieved password display
+        row_result = QHBoxLayout()
+        self.lbl_result_title = QLabel("Generated Password:")
+        self.entry_result = QLineEdit()
+        self.entry_result.setReadOnly(True)
+        row_result.addWidget(self.lbl_result_title)
+        row_result.addWidget(self.entry_result)
+        layout.addLayout(row_result)
+
+        # ── Action buttons ───────────────────────────────
+        row_btn1 = QHBoxLayout()
+        self.btn_set_master = QPushButton("Set Master Password")
+        self.btn_set_master.clicked.connect(self.set_master_password)
+        self.btn_set_master.hide()
+
+        btn_hash = QPushButton("Hash Password")
+        btn_hash.clicked.connect(self.hash_password)
+
+        btn_save = QPushButton("Save / Update")
+        btn_save.clicked.connect(self.save_password)
+
+        row_btn1.addWidget(self.btn_set_master)
+        row_btn1.addWidget(btn_hash)
+        row_btn1.addWidget(btn_save)
+        layout.addLayout(row_btn1)
+
+        row_btn2 = QHBoxLayout()
+        btn_retrieve = QPushButton("Retrieve Password")
+        btn_retrieve.clicked.connect(self.retrieve_password)
+
+        btn_copy = QPushButton("Copy to Clipboard")
+        btn_copy.clicked.connect(self.copy_password_to_clipboard)
+
+        row_btn2.addWidget(btn_retrieve)
+        row_btn2.addWidget(btn_copy)
+        layout.addLayout(row_btn2)
+
+        layout.addStretch()
+
+        # ── Menu ─────────────────────────────────────────
+        menubar = self.menuBar()
+        help_menu = menubar.addMenu("Help")
+
+        act_instructions = QAction("Instructions for Use", self)
+        act_instructions.triggered.connect(self.show_instructions)
+        help_menu.addAction(act_instructions)
+
+        act_about = QAction("About Password Genie", self)
+        act_about.triggered.connect(self.show_about)
+        help_menu.addAction(act_about)
+
+        donate_menu = QMenu("Donate", self)
+        donate_menu.addAction("GitHub Sponsors", lambda: webbrowser.open("https://github.com/sponsors/kaotickj"))
+        donate_menu.addAction("Patreon", lambda: webbrowser.open("https://patreon.com/KaotickJay"))
+        donate_menu.addAction("PayPal", lambda: webbrowser.open("https://paypal.me/kaotickj"))
+        help_menu.addMenu(donate_menu)
+
+    # ─────────────────────────────────────────────────────
+    # Core Functions
+    # ─────────────────────────────────────────────────────
+
+    def check_and_initialize_master_password(self):
+        self.btn_set_master.setVisible(not self.vault.has_master())
+        self.lock_vault()
+
+    def lock_vault(self):
+        self.master_password_verified = False
+        self.combo_platforms.clear()
+        self.combo_platforms.setEnabled(False)
+        self.entry_username.clear()
+        self.entry_password.clear()
+        self.entry_result.clear()
+
+    def set_master_password(self):
+        master = self.entry_master.text().strip()
+        if not master:
+            QMessageBox.warning(self, "Error", "Please enter a master passkey.")
+            return
+        reply = QMessageBox.question(self, "Set Master Password",
+            "Set this as the initial master password? It cannot be recovered.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         try:
-            from tkinter import PhotoImage
-            if os.path.exists(icon_png):
-                icon_image = PhotoImage(file=icon_png)
-                app.iconphoto(False, icon_image)
-            else:
-                print("Notice: icon.png not found. Skipping icon set on non-Windows platform.")
-        except Exception as e:
-            print(f"Warning: Failed to set PNG window icon: {e}")
+            self.vault.set_master(master)
+            self.master_password_verified = True
+            self.btn_set_master.hide()
+            self.update_platform_combobox()
+            self.combo_platforms.setEnabled(True)
+            QMessageBox.information(self, "Success", "Master password set successfully.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", str(exc))
 
-
-set_window_icon()
-
-# === Widgets ===
-label_master_key = tk.Label(app, text="Master Passkey:")
-entry_master_key = tk.Entry(app, show="*")
-
-label_password = tk.Label(app, text="Password to Save:")
-entry_password = tk.Entry(app, show="*")
-
-label_length = tk.Label(app, text="Password Length:")
-entry_length = tk.Entry(app)
-entry_length.insert(0, "16")
-
-label_requirements = tk.Label(app, text="Character Requirements:")
-label_requirements.place(x=10, y=110)
-
-# Create a frame to hold checkboxes horizontally
-frame_requirements = tk.Frame(app)
-frame_requirements.place(x=150, y=110)
-
-# Boolean variables for each checkbox
-var_letters = tk.BooleanVar(value=True)
-var_digits = tk.BooleanVar(value=True)
-var_punctuation = tk.BooleanVar(value=True)
-
-# Create the checkboxes
-chk_letters = tk.Checkbutton(frame_requirements, text="Letters", variable=var_letters)
-chk_letters.pack(side=tk.LEFT, padx=(0, 10))  # Add some padding between checkboxes
-
-chk_digits = tk.Checkbutton(frame_requirements, text="Digits", variable=var_digits)
-chk_digits.pack(side=tk.LEFT, padx=(0, 10))
-
-chk_punctuation = tk.Checkbutton(frame_requirements, text="Punctuation", variable=var_punctuation)
-chk_punctuation.pack(side=tk.LEFT)
-label_platform = tk.Label(app, text="Platform:")
-entry_platform = tk.Entry(app)
-
-# Added Username field
-label_username = tk.Label(app, text="Username:")
-entry_username = tk.Entry(app)
-
-# Saved platforms combobox and label
-label_saved_platforms = tk.Label(app, text="Saved Platforms:")
-combo_platforms = ttk.Combobox(app, state="readonly")
-
-label_password_text = tk.Label(app, text="Generated Password:")
-password_text = tk.Entry(app, state='readonly', width=20)
-
-master_password_set = None
-
-
-# === Functions ===
-def set_master_password():
-    global master_password_set
-    master_key = entry_master_key.get()
-    if not master_key:
-        messagebox.showerror("Error", "Please enter a master passkey.")
-        return
-    if not messagebox.askyesno("Set Master Password", "This will set the initial master password. Proceed?"):
-        return
-    salt = secrets.token_bytes(16)
-    hashed_master_key = derive_key(master_key, salt)
-    try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        # Check if already set
-        c.execute("SELECT COUNT(*) FROM master_key")
-        if c.fetchone()[0] > 0:
-            messagebox.showerror("Error", "Master password already exists. Use 'Verify' instead.")
-            conn.close()
-            return
-        c.execute("INSERT INTO master_key (salt, hashed_master_key) VALUES (?, ?)", (salt, hashed_master_key))
-        conn.commit()
-        conn.close()
-        master_password_set = True
-        button_set_master_password.place_forget()
-        messagebox.showinfo("Success", "Master password set successfully.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to set master password: {str(e)}")
-
-
-def verify_master_password():
-    global master_password_set
-    master_key = entry_master_key.get()
-    if not master_key:
-        messagebox.showerror("Error", "Please enter your master passkey.")
-        return
-    try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("SELECT salt, hashed_master_key FROM master_key LIMIT 1")
-        row = c.fetchone()
-        conn.close()
-        if not row:
-            messagebox.showinfo("Setup Required", "No master password set. Please set one now.")
-            button_set_master_password.place(x=10, y=40)
-            return
-        salt, stored_hashed_master_key = row
-        derived_key = derive_key(master_key, salt)
-        if derived_key == stored_hashed_master_key:
-            master_password_set = True
-            messagebox.showinfo("Success", "Master password verified successfully.")
-            button_set_master_password.place_forget()
-            # Populate platforms now that master password is verified
-            update_platform_combobox()
-        else:
-            master_password_set = False
-            messagebox.showerror("Error", "Incorrect master password.")
-            combo_platforms['values'] = []
-            combo_platforms.place_forget()
-            label_saved_platforms.place_forget()
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred during verification: {str(e)}")
-
-
-# Define the problematic special characters to exclude
-PROBLEMATIC_PUNCTUATION = set('<>:"/\\|?*~`')
-
-
-def generate_password():
-    if not master_password_set:
-        messagebox.showerror("Error", "Please verify or set the master password first.")
-        return
-    try:
-        length = int(entry_length.get())
-        if length <= 0:
-            raise ValueError()
-    except ValueError:
-        messagebox.showerror("Error", "Enter a valid positive number for password length.")
-        return
-
-    # Build character set based on checkbox selections
-    characters = ""
-    if var_letters.get():
-        characters += string.ascii_letters
-    if var_digits.get():
-        characters += string.digits
-    if var_punctuation.get():
-        characters += string.punctuation
-
-    if not characters:
-        messagebox.showerror("Error", "Please select at least one character type.")
-        return
-
-    password = ''.join(secrets.choice(characters) for _ in range(length))
-
-    password_text.config(state='normal')
-    password_text.delete(0, tk.END)
-    password_text.insert(tk.END, password)
-    password_text.config(state='readonly')
-    label_password_text.config(text="Generated Password:")
-    messagebox.showinfo("Generated Password", f"Your password is: {password}")
-
-
-def hash_password():
-    if not master_password_set:
-        messagebox.showerror("Error", "Please verify or set the master password first.")
-        return
-    password = entry_password.get()
-    if not password:
-        messagebox.showerror("Error", "Please enter a password to hash.")
-        return
-    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-    digest.update(password.encode())
-    hashed_password = digest.finalize()
-    messagebox.showinfo("Hashed Password", f"The hashed password is: {hashed_password.hex()}")
-
-
-def save_password():
-    if not master_password_set:
-        messagebox.showerror("Error", "Please verify or set the master password first.")
-        return
-    master_key = entry_master_key.get()
-    password = entry_password.get()
-    platform = entry_platform.get().strip()
-    username = entry_username.get().strip()
-    if not master_key or not password or not platform or not username:
-        messagebox.showerror("Error", "Please fill in all fields including Username.")
-        return
-    salt = secrets.token_bytes(16)
-    key = derive_key(master_key, salt)
-    key_b64 = base64.urlsafe_b64encode(key)
-    try:
-        cipher_suite = Fernet(key_b64)
-        encrypted_password = cipher_suite.encrypt(password.encode())
-        # Store as: salt + b':' + encrypted_password blob
-        stored_blob = salt + b':' + encrypted_password
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("SELECT id FROM credentials WHERE service = ?", (platform,))
-        row = c.fetchone()
-        if row:
-            c.execute(
-                "UPDATE credentials SET username = ?, password_encrypted = ? WHERE service = ?",
-                (username, stored_blob, platform)
-            )
-            messagebox.showinfo("Password Updated", f"Username and password for '{platform}' updated successfully.")
-        else:
-            c.execute(
-                "INSERT INTO credentials (service, username, password_encrypted) VALUES (?, ?, ?)",
-                (platform, username, stored_blob)
-            )
-            messagebox.showinfo("Password Saved", f"Username and password for '{platform}' saved successfully.")
-        conn.commit()
-        conn.close()
-        update_platform_combobox()
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while saving: {str(e)}")
-
-
-def retrieve_password():
-    if not master_password_set:
-        messagebox.showerror("Error", "Please verify or set the master password first.")
-        return
-    master_key = entry_master_key.get()
-    platform = entry_platform.get().strip()
-    if not master_key or not platform:
-        messagebox.showerror("Error", "Please enter both master key and platform.")
-        return
-    try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("SELECT username, password_encrypted FROM credentials WHERE service = ?", (platform,))
-        row = c.fetchone()
-        conn.close()
-        if not row:
-            messagebox.showerror("Error", f"No credentials found for platform: {platform}")
-            return
-        username, encrypted_blob = row
-
-        if isinstance(encrypted_blob, memoryview):
-            encrypted_blob = encrypted_blob.tobytes()
-
-        salt, encrypted_password = encrypted_blob.split(b':', 1)
-
-        key = derive_key(master_key, salt)
-        key_b64 = base64.urlsafe_b64encode(key)
-        cipher_suite = Fernet(key_b64)
-        decrypted_password = cipher_suite.decrypt(encrypted_password).decode()
-
-        # Update GUI fields for username and password
-        entry_username.delete(0, tk.END)
-        entry_username.insert(0, username)
-
-        password_text.config(state='normal')
-        password_text.delete(0, tk.END)
-        password_text.insert(tk.END, decrypted_password)
-        password_text.config(state='readonly')
-
-        label_password_text.config(text="Retrieved Password:")
-        messagebox.showinfo("Decrypted Password",
-                            f"Credentials for {platform}:\n\nUsername: {username}\nPassword: {decrypted_password}")
-    except Exception as e:
-        messagebox.showerror("Error", f"Error retrieving credentials: {str(e)}")
-
-
-def update_platform_combobox():
-    try:
-        platforms = []
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("SELECT DISTINCT service FROM credentials")
-        rows = c.fetchall()
-        conn.close()
-        for row in rows:
-            platform_name = row[0]
-            if platform_name and platform_name not in platforms:
-                platforms.append(platform_name)
-        platforms.sort()
-        combo_platforms['values'] = platforms
-        if platforms:
-            combo_platforms.current(0)
-            label_saved_platforms.place(x=10, y=230)
-            combo_platforms.place(x=150, y=230)
-        else:
-            label_saved_platforms.place_forget()
-            combo_platforms.place_forget()
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while loading saved platforms: {str(e)}")
-        label_saved_platforms.place_forget()
-        combo_platforms.place_forget()
-
-
-def on_platform_selected(event):
-    selected = combo_platforms.get()
-    if selected:
-        entry_platform.delete(0, tk.END)
-        entry_platform.insert(0, selected)
+    def verify_master_password(self):
+        self.lock_vault()
         try:
-            conn = get_db_connection()
-            c = conn.cursor()
-            c.execute("SELECT username FROM credentials WHERE service = ?", (selected,))
-            row = c.fetchone()
-            conn.close()
-            if row:
-                entry_username.delete(0, tk.END)
-                entry_username.insert(0, row[0])
-            else:
-                entry_username.delete(0, tk.END)
-        except Exception as e:
-            messagebox.showerror("Error", f"Error fetching username: {str(e)}")
-            entry_username.delete(0, tk.END)
+            self.vault.require_master(self.entry_master.text().strip())
+            self.master_password_verified = True
+            self.btn_set_master.hide()
+            self.update_platform_combobox()
+            self.combo_platforms.setEnabled(True)
+            QMessageBox.information(self, "Success", "Master password verified successfully.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", str(exc))
+
+    def generate_password(self):
+        if not self.master_password_verified:
+            QMessageBox.warning(self, "Locked", "Please verify or set the master password first.")
+            return
+        try:
+            length = int(self.entry_length.text().strip())
+            if length <= 0 or length > 4096:
+                raise ValueError()
+        except ValueError:
+            QMessageBox.warning(self, "Error", "Enter a password length between 1 and 4096.")
+            return
+
+        chars = ""
+        if self.chk_letters.isChecked():
+            chars += string.ascii_letters
+        if self.chk_digits.isChecked():
+            chars += string.digits
+        if self.chk_punct.isChecked():
+            chars += string.punctuation
+
+        if not chars:
+            QMessageBox.warning(self, "Error", "Please select at least one character type.")
+            return
+
+        password = ''.join(secrets.choice(chars) for _ in range(length))
+        self.entry_result.setText(password)
+        self.lbl_result_title.setText("Generated Password:")
+        QMessageBox.information(self, "Generated Password", f"Your password is:\n\n{password}")
+
+    def hash_password(self):
+        if not self.master_password_verified:
+            QMessageBox.warning(self, "Locked", "Please verify or set the master password first.")
+            return
+
+        pw = self.entry_password.text().strip()
+        if not pw:
+            QMessageBox.warning(self, "Error", "Please enter a password to hash.")
+            return
+
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        digest.update(pw.encode())
+        hashed = digest.finalize()
+
+        QMessageBox.information(self, "Hashed Password", f"SHA-256:\n\n{hashed.hex()}")
+
+    def save_password(self):
+        if not self.master_password_verified:
+            QMessageBox.warning(self, "Locked", "Verify or set the master password first.")
+            return
+        try:
+            self.vault.save(self.entry_master.text().strip(),
+                self.entry_platform.text().strip(), self.entry_username.text().strip(),
+                self.entry_password.text())
+            self.update_platform_combobox()
+            QMessageBox.information(self, "Success", "Credentials saved.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", str(exc))
+
+    def retrieve_password(self):
+        if not self.master_password_verified:
+            QMessageBox.warning(self, "Locked", "Verify or set the master password first.")
+            return
+        try:
+            username, password = self.vault.retrieve(self.entry_master.text().strip(),
+                                                   self.entry_platform.text().strip())
+            self.entry_username.setText(username)
+            self.entry_result.setText(password)
+            self.lbl_result_title.setText("Retrieved Password:")
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", str(exc))
+
+    def update_platform_combobox(self):
+        try:
+            services = self.vault.services(self.entry_master.text().strip())
+            self.combo_platforms.clear()
+            self.combo_platforms.addItems(services)
+        except Exception as exc:
+            self.lock_vault()
+            QMessageBox.critical(self, "Error", str(exc))
+
+    def on_platform_selected(self, text):
+        if text and self.master_password_verified:
+            self.entry_platform.setText(text)
+            self.entry_result.clear()
+
+    def copy_password_to_clipboard(self):
+        text = self.entry_result.text()
+        if not text:
+            return
+        QApplication.clipboard().setText(text)
+        QMessageBox.information(self, "Copied", "Password copied to clipboard.")
+
+    def show_instructions(self):
+        instructions = (
+            "🔐 INSTRUCTIONS FOR USING PASSWORD GENIE 🔐\n\n"
+            "1. Enter Your Master Passkey\n"
+            "   Required for all vault operations.\n\n"
+            "2. First time → click 'Set Master Password'\n"
+            "   Later → click 'Verify Passkey'\n\n"
+            "3. Generate secure passwords\n"
+            "4. Hash strings (SHA-256)\n"
+            "5. Save / update credentials\n"
+            "6. Retrieve stored credentials\n\n"
+            "⚠️  Remember your master password — it cannot be recovered.\n"
+        )
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Instructions")
+        dialog.resize(580, 420)
+
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setPlainText(instructions)
+        text_edit.setFontFamily("Courier New")
+
+        scroll = QScrollArea()
+        scroll.setWidget(text_edit)
+        scroll.setWidgetResizable(True)
+
+        lay = QVBoxLayout(dialog)
+        lay.addWidget(scroll)
+        dialog.exec()
+
+    def show_about(self):
+        year = datetime.now().year
+        copyright_year = f"2023–{year}" if year > 2023 else "2023"
+
+        msg = (
+            "Password Genie\n"
+            f"Version {VERSION}\n\n"
+            f"© {copyright_year} Kaotick Jay\n"
+            "License: GNU GPL v3\n\n"
+            "GitHub: https://github.com/kaotickj"
+        )
+
+        QMessageBox.about(self, "About Password Genie", msg)
 
 
-def list_saved_platforms():
-    if not master_password_set:
-        messagebox.showerror("Error", "Please verify or set the master password first.")
-        return
-    update_platform_combobox()
-    if combo_platforms.winfo_ismapped():
-        combo_platforms.focus_set()
-
-
-def show_about_dialog():
-    about_window = tk.Toplevel(app)
-    about_window.title("About Password Genie")
-    about_window.geometry("300x200")
-    about_window.resizable(False, False)
-    tk.Label(about_window, text="Password Genie", font=("Helvetica", 14, "bold")).pack(pady=(10, 0))
-    tk.Label(about_window, text="Version 1.2.0").pack()
-    tk.Label(about_window, text="Created by Kaotick Jay").pack()
-    tk.Label(about_window, text="License: GNU/GPL3").pack()
-    start_year = 2023
-    current_year = datetime.now().year
-    year_display = f"{start_year}–{current_year}" if current_year > start_year else str(start_year)
-    tk.Label(about_window, text=f"© {year_display} Kaotick Jay").pack()
-
-    def open_github(event):
-        webbrowser.open_new("https://github.com/kaotickj")
-
-    link = tk.Label(about_window, text="GitHub: https://github.com/kaotickj", fg="blue", cursor="hand2")
-    link.pack(pady=10)
-    link.bind("<Button-1>", open_github)
-
-
-def show_instructions():
-    instructions = (
-        "🔐 INSTRUCTIONS FOR USING PASSWORD GENIE 🔐\n\n"
-        "1. Enter Your Master Passkey:\n"
-        "   - Required to access any vault features.\n"
-        "   - If this is your first time, proceed to Step 2.\n\n"
-        "2. Set Master Password:\n"
-        "   - Click 'Set Master Password' to create your key.\n"
-        "   - This passkey encrypts and protects all stored data.\n\n"
-        "3. Verify Passkey:\n"
-        "   - If you’ve set your key already, click to unlock the vault.\n"
-        "   - Once verified, all features are enabled.\n\n"
-        "4. Using the Vault:\n"
-        "   - Generate: Create a secure random password.\n"
-        "   - Hash: Hash anything in the 'Password to Save' field.\n"
-        "   - Save: Store/update a record (platform + username).\n"
-        "       • To update, re-enter platform and username, then click Save.\n"
-        "   - Retrieve: Load and display stored credentials.\n\n"
-        "5. Copy to Clipboard:\n"
-        "   - After generating or retrieving a password, copy it instantly.\n"
-        "   - Paste it where needed without retyping.\n\n"
-        "⚠️  NOTE:\n"
-        "   - Remember your master password — it's unrecoverable if lost.\n"
-        "   - Always close the app securely to prevent tampering.\n"
-    )
-
-    # Create a scrollable Toplevel window
-    win = Toplevel()
-    win.title("Instructions for Use")
-    win.geometry("600x500")
-    win.resizable(True, True)
-
-    # Configure fonts and text display
-    text_frame = Text(win, wrap='word', padx=10, pady=10, font=("Courier New", 11))
-    text_frame.insert(END, instructions)
-    text_frame.config(state='disabled')  # Make read-only
-    text_frame.pack(expand=True, fill=BOTH)
-
-    # Add vertical scrollbar
-    scrollbar = Scrollbar(text_frame, command=text_frame.yview)
-    text_frame['yscrollcommand'] = scrollbar.set
-    scrollbar.pack(side=RIGHT, fill=Y)
-
-def open_donation_link(url):
-    webbrowser.open_new(url)
-
-
-def check_and_initialize_master_password():
-    global master_password_set
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    app.setStyleSheet("""
+        QWidget { background: #20242b; color: #f0f2f5; }
+        QLineEdit, QComboBox, QTextEdit { background: #13171d; padding: 5px; }
+        QPushButton { background: #354456; border-radius: 4px; padding: 7px; }
+        QPushButton:hover { background: #46637c; }
+        QGroupBox { border: 1px solid #586374; margin-top: 12px; padding-top: 12px; }
+    """)
     try:
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM master_key")
-        count = c.fetchone()[0]
-        conn.close()
-        if count > 0:
-            master_password_set = False
-            button_set_master_password.place_forget()
-            combo_platforms['values'] = []
-            combo_platforms.place_forget()
-            label_saved_platforms.place_forget()
-        else:
-            master_password_set = False
-            button_set_master_password.place(x=10, y=40)
-            combo_platforms['values'] = []
-            combo_platforms.place_forget()
-            label_saved_platforms.place_forget()
-    except Exception as e:
-        messagebox.showerror("Startup Error", f"Database error: {str(e)}")
-        master_password_set = False
-        button_set_master_password.place(x=150, y=270)
-        combo_platforms['values'] = []
-        combo_platforms.place_forget()
-        label_saved_platforms.place_forget()
-
-
-# === Layout placements ===
-label_master_key.place(x=10, y=10)
-entry_master_key.place(x=150, y=10)
-
-button_verify_master_password = tk.Button(app, text="Verify Passkey", command=verify_master_password)
-button_verify_master_password.place(x=290, y=10)
-
-label_length.place(x=10, y=80)
-entry_length.place(x=150, y=80)
-
-# label_requirements.place(x=10, y=110)
-# entry_requirements.place(x=150, y=110)
-
-label_platform.place(x=10, y=140)
-entry_platform.place(x=150, y=140)
-
-label_username.place(x=10, y=170)
-entry_username.place(x=150, y=170)
-
-label_password.place(x=10, y=200)
-entry_password.place(x=150, y=200)
-
-label_saved_platforms.place(x=10, y=230)
-combo_platforms.place(x=150, y=230)
-
-label_password_text.place(x=10, y=350)
-password_text.place(x=150, y=350)
-
-button_generate = tk.Button(app, text="Generate Password", command=generate_password)
-button_generate.place(x=10, y=270)
-
-button_hash = tk.Button(app, text="Hash Password", command=hash_password)
-button_hash.place(x=170, y=270)
-
-button_save = tk.Button(app, text="Save Password", command=save_password)
-button_save.place(x=10, y=310)
-
-button_retrieve = tk.Button(app, text="Retrieve Password", command=retrieve_password)
-button_retrieve.place(x=170, y=310)
-
-button_set_master_password = tk.Button(app, text="Set Master Password", command=set_master_password)
-
-copy_button = tk.Button(app, text="Copy Password to Clipboard", command=lambda: (
-    app.clipboard_clear(),
-    app.clipboard_append(password_text.get()),
-    app.update(),
-    messagebox.showinfo("Copied", "Password copied to clipboard.")
-))
-copy_button.place(x=10, y=390)
-
-combo_platforms.bind("<<ComboboxSelected>>", on_platform_selected)
-
-# Menu Bar
-menu_bar = tk.Menu(app)
-app.config(menu=menu_bar)
-about_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Help", menu=about_menu)
-about_menu.add_command(label="Instructions for Use", command=show_instructions)
-# about_menu.add_command(label="List Saved Platforms", command=list_saved_platforms)
-about_menu.add_command(label="About Password Genie", command=show_about_dialog)
-about_menu.add_separator()
-donate_menu = tk.Menu(about_menu, tearoff=0)
-donate_menu.add_command(label="GitHub: @kaotickj",
-                        command=lambda: open_donation_link("https://github.com/sponsors/kaotickj"))
-donate_menu.add_command(label="Patreon: KaotickJay",
-                        command=lambda: open_donation_link("https://patreon.com/KaotickJay"))
-donate_menu.add_command(label="PayPal: Donate Here", command=lambda: open_donation_link("https://paypal.me/kaotickj"))
-about_menu.add_cascade(label="Donate", menu=donate_menu)
-
-check_and_initialize_master_password()
-app.mainloop()
+        window = PasswordGenie()
+    except Exception as exc:
+        QMessageBox.critical(None, "Vault startup error", str(exc))
+        sys.exit(1)
+    window.show()
+    sys.exit(app.exec())
