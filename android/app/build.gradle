@@ -20,7 +20,15 @@ android {
             }
         }
     }
-    buildTypes { release { signingConfig signingConfigs.release } }
+    buildTypes {
+        release {
+            // Only the isolated CI build may explicitly defer signing to a
+            // separate runner. Normal release builds still require the key.
+            if (System.getenv('PASSWORD_GENIE_UNSIGNED_RELEASE') != '1') {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
