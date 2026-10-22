@@ -1,0 +1,49 @@
+name: Remove twelve superseded Password Genie artifacts
+on:
+  push:
+    branches: [maintenance/artifact-cleanup]
+    paths: [.github/workflows/cleanup-artifacts.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cleanup:
+    if: github.repository == 'kaotickj/password-genie'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify fixed inventory and delete only these twelve older artifacts
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          assert os.environ['GITHUB_REPOSITORY'] == 'kaotickj/password-genie'
+          # Fixed IDs inspected before this workflow was created. No listing
+          # or selection of newly created artifacts; no release assets.
+          manifest = json.loads(r'''[{"id":12355770335,"run_id":39620847676,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":30169675},{"id":12355640283,"run_id":39620847676,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":110055},{"id":12354593667,"run_id":39620847676,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":161902674},{"id":12354268395,"run_id":39620847676,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":36092058},{"id":12355156170,"run_id":39620838424,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":161899896},{"id":12354991108,"run_id":39620838424,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":36093571},{"id":12354751838,"run_id":39620838424,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":110055},{"id":12354613410,"run_id":39620838424,"head_sha":"ca4b567679ca9e12f8780a5ee0b1798c84e2c338","size":30166657},{"id":12354558035,"run_id":39620617393,"head_sha":"dee005fa523dd7ee370283b8683175b1d43ec56d","size":30181606},{"id":12354189398,"run_id":39620617393,"head_sha":"dee005fa523dd7ee370283b8683175b1d43ec56d","size":36095479},{"id":12355530050,"run_id":39620556505,"head_sha":"dee005fa523dd7ee370283b8683175b1d43ec56d","size":30174815},{"id":12354641660,"run_id":39620556505,"head_sha":"dee005fa523dd7ee370283b8683175b1d43ec56d","size":36095907}]''')
+          assert len(manifest) == 12
+          assert all(a['run_id'] < 39733677586 for a in manifest)
+          for expected in manifest:
+              current = json.loads(subprocess.check_output([
+                  'gh', 'api',
+                  f"repos/kaotickj/password-genie/actions/artifacts/{expected['id']}"
+              ], text=True))
+              assert current['id'] == expected['id']
+              assert current['workflow_run']['id'] == expected['run_id']
+              assert current['workflow_run']['head_sha'] == expected['head_sha']
+              assert current['size_in_bytes'] == expected['size']
+          print('Verified exactly twelve superseded artifacts from four older builds; newer builds are excluded')
+          for artifact in manifest:
+              subprocess.run(['gh', 'api', '--method', 'DELETE',
+                  f"repos/kaotickj/password-genie/actions/artifacts/{artifact['id']}"],
+                  check=True, stdout=subprocess.DEVNULL)
+          report = {'deleted_artifacts': len(manifest),
+                    'deleted_bytes': sum(a['size'] for a in manifest),
+                    'preserved': 'All other artifacts, all releases, and all vaults'}
+          print(json.dumps(report))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(json.dumps(report, indent=2) + '\n')
+          PY
