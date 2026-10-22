@@ -10,6 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from vault_core import VERSION
+from check_package_contents import check_tree, check_archive
 
 
 def run(*args):
@@ -34,8 +35,14 @@ def main():
         '--add-data', f'icon.png{os.pathsep}.', '--add-data', f'icon.ico{os.pathsep}.',
         '--exclude-module', 'tkinter', 'pwgenie.py']
     run(*command)
+    payload = out / ('PasswordGenie.app' if system == 'darwin' else 'PasswordGenie')
+    check_tree(payload)
+    print('Application payload privacy check passed', flush=True)
     if system == 'linux':
         package = staging / name
+        # Start fresh so stale files can never survive into a new installer.
+        if package.exists():
+            shutil.rmtree(package)
         (package / 'opt' / 'password-genie').mkdir(parents=True, exist_ok=True)
         shutil.copytree(out / 'PasswordGenie', package / 'opt' / 'password-genie', dirs_exist_ok=True)
         applications = package / 'usr' / 'share' / 'applications'
@@ -62,11 +69,16 @@ Description: Local encrypted credential vault and password generator
 ''')
         for path in package.rglob('*'):
             if path.is_dir(): path.chmod(0o755)
+        check_tree(package)
         run('dpkg-deb', '--root-owner-group', '--build', package, out / (name + '.deb'))
         shutil.make_archive(str(out / name), 'gztar', root_dir=out, base_dir='PasswordGenie')
+        check_archive(out / (name + '.deb'))
+        check_archive(out / (name + '.tar.gz'))
     elif system == 'darwin':
         dmg = staging / 'dmg'
-        dmg.mkdir(exist_ok=True)
+        if dmg.exists():
+            shutil.rmtree(dmg)
+        dmg.mkdir()
         shutil.copytree(out / 'PasswordGenie.app', dmg / 'PasswordGenie.app', dirs_exist_ok=True, symlinks=True)
         (dmg / 'Applications').symlink_to('/Applications', target_is_directory=True)
         run('hdiutil', 'create', '-volname', 'Password Genie', '-srcfolder', dmg,

@@ -17,7 +17,7 @@ python pwgenie.py
 
 On first run the app creates an **empty** `vault.db`, then offers **Set Master Password**. On later runs, enter the existing passkey and choose **Verify Passkey**. No separate master-key utility is needed. Save credentials by platform and username, retrieve them, or generate passwords of 1–4096 characters. Character checkboxes choose the sampling alphabet; they do not guarantee every selected category appears. SHA-256 produces a fingerprint, not reversible encryption or a password-storage hash.
 
-Keep the master passkey safe: it cannot be recovered. Editing the passkey locks the desktop vault. Android also locks when the app goes into the background. There is no automatic synchronization between devices.
+Keep the master passkey safe: it cannot be recovered. Editing the passkey locks the desktop vault. Android also locks when the app goes into the background. There is no automatic synchronization between devices. See the proposed [cross-device sync design](SYNC_DESIGN.md).
 
 ## Vault location and existing users
 
@@ -38,7 +38,7 @@ PASSWORD_GENIE_VAULT=/absolute/path/to/vault.db python pwgenie.py
 
 Back up your own vault while the application is closed before trying a new version. Schema-1 data and its 100,000-iteration PBKDF2-HMAC-SHA256 + Fernet format are preserved; unsupported schemas produce an error and are not overwritten. Password values retain leading/trailing whitespace; master passkeys retain the prior UI's trimming behavior. Service names and usernames remain unencrypted in the database, as in v2.0.
 
-Your vault, its SQLite sidecars/backups, signing keys, and unrelated sensitive documents must stay outside Git and build artifacts. `.gitignore` and CI check this. Build scripts explicitly include app code and icons, never whole working folders.
+Your vault, its SQLite sidecars/backups, signing keys, and unrelated sensitive documents must stay outside Git and build artifacts. `.gitignore` and CI check this. Packaging also scans application payloads and supported final archives for database names, SQLite/PDF contents, and private-key files before upload. Build scripts explicitly include app code and icons, never whole working folders.
 
 ## Build installers
 
@@ -56,7 +56,7 @@ Run on the destination OS: PyInstaller does not cross-compile desktop executable
 
 ## Workflows and releases
 
-[Build installers](.github/workflows/build.yml) runs desktop tests/builds and Android unit tests/lint/APK builds for pushes, pull requests, and manual dispatch. Artifacts are downloadable from the workflow run. A `v2.1.0` tag additionally builds a signed Android APK and creates a **draft** GitHub release with all installers and SHA-256 checksums only after every build succeeds. It never overwrites an existing release.
+[Build installers](.github/workflows/build.yml) runs desktop tests/builds and Android unit tests/lint/APK builds for pushes to `dev`, `main`, `release`, and build branches, pull requests, and manual dispatch. Linux and macOS staging directories are rebuilt from scratch for each package to prevent stale files from being carried forward. Artifacts are downloadable from the workflow run. A `v2.1.0` tag additionally builds a signed Android APK and creates a **draft** GitHub release with all installers and SHA-256 checksums only after every build succeeds. It never overwrites an existing release.
 
 Configure repository Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` using a persistent release keystore. Missing secrets fail the release job instead of publishing an unsigned APK. Keep the keystore and passwords out of the repository. Windows Authenticode signing and macOS Developer ID signing/notarization still need configuration before a fully signed public release.
 

@@ -1,7 +1,7 @@
 name: Build installers
 on:
   push:
-    branches: [main, release, 'build/**']
+    branches: [main, dev, release, 'build/**']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -56,6 +56,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_private_files.py
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -72,6 +76,8 @@ jobs:
       - name: Test, lint, and build APK
         working-directory: android
         run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+      - name: Check APK excludes private data
+        run: python scripts/check_package_contents.py android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: android-debug-apk
@@ -113,6 +119,8 @@ jobs:
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE"
           chmod 600 "$ANDROID_KEYSTORE"
           gradle --no-daemon assembleRelease
+      - name: Check release APK excludes private data
+        run: python scripts/check_package_contents.py android/app/build/outputs/apk/release/app-release.apk
       - uses: actions/download-artifact@v4
         with:
           pattern: desktop-*
