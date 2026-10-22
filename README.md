@@ -60,6 +60,8 @@ Run on the destination OS: PyInstaller does not cross-compile desktop executable
 
 Configure repository Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` using a persistent release keystore. Missing secrets fail the release job instead of publishing an unsigned APK. Keep the keystore and passwords out of the repository. Windows Authenticode signing and macOS Developer ID signing/notarization still need configuration before a fully signed public release.
 
+The existing K-Tunes signing key can also sign Password Genie through an isolated workflow in its key repository, without exporting the key. See [Android signing setup and rebuild instructions](ANDROID_SIGNING.md).
+
 Before tagging: update `vault_core.VERSION`, Android `versionName`/`versionCode`, and release notes; verify the installers on each platform, including an Android device/emulator. The release tag must match the source version. Review and publish the draft after installation tests pass. See [reconciliation notes](RECONCILIATION.md) and [release notes](RELEASE_NOTES.md).
 
 ## Tests
