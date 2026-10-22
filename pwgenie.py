@@ -22,6 +22,9 @@ from PyQt6.QtWidgets import (
     QDialog,
     QScrollArea,
 )
+from PyQt6.QtCore import Qt
+from desktop_theme import apply_theme
+
 from PyQt6.QtGui import (
     QAction,
     QIcon,
@@ -44,7 +47,8 @@ class PasswordGenie(QMainWindow):
         super().__init__()
         self.vault = vault if vault is not None else Vault()
         self.setWindowTitle("Password Genie")
-        self.resize(460, 540)
+        self.resize(920, 760)
+        self.setMinimumSize(760, 610)
 
         self.try_set_icon()
 
@@ -68,131 +72,157 @@ class PasswordGenie(QMainWindow):
 
     def init_ui(self):
         central = QWidget()
+        central.setObjectName("canvas")
         self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setSpacing(12)
-        layout.setContentsMargins(16, 12, 16, 12)
+        outer = QVBoxLayout(central)
+        outer.setContentsMargins(28, 16, 28, 14)
+        outer.setSpacing(12)
 
-        # ── Master Passkey ───────────────────────────────
-        row_master = QHBoxLayout()
-        lbl_master = QLabel("Master Passkey:")
-        lbl_master.setMinimumWidth(130)
+        header = QHBoxLayout()
+        brand = QVBoxLayout()
+        brand.setSpacing(4)
+        eyebrow = QLabel("YOUR KEYS. YOUR CONTROL.")
+        eyebrow.setObjectName("eyebrow")
+        title = QLabel("Password Genie")
+        title.setObjectName("title")
+        subtitle = QLabel("Generate strong passwords. Keep your credentials close.")
+        subtitle.setObjectName("subtitle")
+        for label in (eyebrow, title, subtitle):
+            brand.addWidget(label)
+        header.addLayout(brand)
+        header.addStretch()
+        self.status_label = QLabel("VAULT LOCKED")
+        self.status_label.setObjectName("status")
+        header.addWidget(self.status_label, alignment=Qt.AlignmentFlag.AlignTop)
+        outer.addLayout(header)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        body = QWidget()
+        body.setObjectName("body")
+        layout = QVBoxLayout(body)
+        layout.setContentsMargins(0, 0, 8, 0)
+        layout.setSpacing(12)
+        scroll.setWidget(body)
+        outer.addWidget(scroll)
+
+        def field(label, widget, parent):
+            caption = QLabel(label)
+            caption.setObjectName("fieldLabel")
+            caption.setBuddy(widget)
+            parent.addWidget(caption)
+            parent.addWidget(widget)
+
+        def button(text, action, secondary=False):
+            widget = QPushButton(text)
+            widget.setCursor(Qt.CursorShape.PointingHandCursor)
+            widget.setProperty("secondary", secondary)
+            widget.clicked.connect(action)
+            return widget
+
+        access = QGroupBox("01  /  Unlock your vault")
+        access_layout = QVBoxLayout(access)
         self.entry_master = QLineEdit()
+        self.entry_master.setPlaceholderText("Enter your master passkey")
         self.entry_master.setEchoMode(QLineEdit.EchoMode.Password)
         self.entry_master.textChanged.connect(self.lock_vault)
-        btn_verify = QPushButton("Verify Passkey")
-        btn_verify.clicked.connect(self.verify_master_password)
+        self.entry_master.returnPressed.connect(self.verify_master_password)
+        access_row = QHBoxLayout()
+        access_row.addWidget(self.entry_master, 1)
+        access_row.addWidget(button("Unlock vault", self.verify_master_password))
+        self.btn_set_master = button("Set master password", self.set_master_password, True)
+        access_row.addWidget(self.btn_set_master)
+        access_layout.addLayout(access_row)
+        access_hint = QLabel("First visit? Set a master password to create your private vault.")
+        access_hint.setObjectName("hint")
+        access_hint.setWordWrap(True)
+        access_layout.addWidget(access_hint)
+        layout.addWidget(access)
 
-        row_master.addWidget(lbl_master)
-        row_master.addWidget(self.entry_master)
-        row_master.addWidget(btn_verify)
-        layout.addLayout(row_master)
-
-        # ── Generate section ─────────────────────────────
-        group_gen = QGroupBox("Generate Password")
-        lay_gen = QVBoxLayout(group_gen)
-        lay_gen.setSpacing(10)
-
-        row_len = QHBoxLayout()
-        lbl_len = QLabel("Password Length:")
+        columns = QHBoxLayout()
+        columns.setSpacing(18)
+        generator = QGroupBox("02  /  Password generator")
+        gen = QVBoxLayout(generator)
+        gen.setSpacing(10)
         self.entry_length = QLineEdit("16")
-        self.entry_length.setMaximumWidth(80)
-        row_len.addWidget(lbl_len)
-        row_len.addWidget(self.entry_length)
-        lay_gen.addLayout(row_len)
+        self.entry_length.setMaximumWidth(95)
+        self.entry_length.setAccessibleName("Password length")
+        length_row = QHBoxLayout()
+        length_row.addWidget(QLabel("Password length"))
+        length_row.addStretch()
+        length_row.addWidget(self.entry_length)
+        gen.addLayout(length_row)
+        hint = QLabel("Choose the characters to draw from.")
+        hint.setObjectName("hint")
+        gen.addWidget(hint)
+        self.chk_letters = QCheckBox("Letters  ·  A–Z, a–z")
+        self.chk_digits = QCheckBox("Numbers  ·  0–9")
+        self.chk_punct = QCheckBox("Symbols  ·  ! @ # $")
+        for checkbox in (self.chk_letters, self.chk_digits, self.chk_punct):
+            checkbox.setChecked(True)
+            gen.addWidget(checkbox)
+        gen.addStretch()
+        gen.addWidget(button("Generate password", self.generate_password))
+        gen.addWidget(button("SHA-256 fingerprint", self.hash_password, True))
+        columns.addWidget(generator, 4)
 
-        row_req = QHBoxLayout()
-        lbl_req = QLabel("Include:")
-        self.chk_letters = QCheckBox("Letters")
-        self.chk_digits = QCheckBox("Digits")
-        self.chk_punct = QCheckBox("Punctuation")
-        self.chk_letters.setChecked(True)
-        self.chk_digits.setChecked(True)
-        self.chk_punct.setChecked(True)
-
-        row_req.addWidget(lbl_req)
-        row_req.addWidget(self.chk_letters)
-        row_req.addWidget(self.chk_digits)
-        row_req.addWidget(self.chk_punct)
-        lay_gen.addLayout(row_req)
-
-        btn_generate = QPushButton("Generate Password")
-        btn_generate.clicked.connect(self.generate_password)
-        lay_gen.addWidget(btn_generate)
-        layout.addWidget(group_gen)
-
-        # ── Vault fields ─────────────────────────────────
-        row_platform = QHBoxLayout()
-        lbl_plat = QLabel("Platform:")
-        self.entry_platform = QLineEdit()
-        row_platform.addWidget(lbl_plat)
-        row_platform.addWidget(self.entry_platform)
-        layout.addLayout(row_platform)
-
-        row_user = QHBoxLayout()
-        lbl_user = QLabel("Username:")
-        self.entry_username = QLineEdit()
-        row_user.addWidget(lbl_user)
-        row_user.addWidget(self.entry_username)
-        layout.addLayout(row_user)
-
-        row_pass = QHBoxLayout()
-        lbl_pass = QLabel("Password:")
-        self.entry_password = QLineEdit()
-        self.entry_password.setEchoMode(QLineEdit.EchoMode.Password)
-        row_pass.addWidget(lbl_pass)
-        row_pass.addWidget(self.entry_password)
-        layout.addLayout(row_pass)
-
-        # Saved platforms - starts disabled
-        row_saved = QHBoxLayout()
-        lbl_saved = QLabel("Saved Platforms:")
+        credentials = QGroupBox("03  /  Saved credentials")
+        cred = QVBoxLayout(credentials)
+        cred.setSpacing(6)
         self.combo_platforms = QComboBox()
-        self.combo_platforms.setEditable(False)
-        self.combo_platforms.setEnabled(False)  # Disabled until verified
+        self.combo_platforms.setPlaceholderText("Unlock to browse saved platforms")
+        self.combo_platforms.setEnabled(False)
         self.combo_platforms.currentTextChanged.connect(self.on_platform_selected)
-        row_saved.addWidget(lbl_saved)
-        row_saved.addWidget(self.combo_platforms)
-        layout.addLayout(row_saved)
+        field("Saved platforms", self.combo_platforms, cred)
+        self.entry_platform = QLineEdit()
+        self.entry_platform.setPlaceholderText("e.g. github.com")
+        field("Platform", self.entry_platform, cred)
+        account_row = QHBoxLayout()
+        username_column, password_column = QVBoxLayout(), QVBoxLayout()
+        self.entry_username = QLineEdit()
+        self.entry_username.setPlaceholderText("Username or email")
+        self.entry_password = QLineEdit()
+        self.entry_password.setPlaceholderText("Password to store")
+        self.entry_password.setEchoMode(QLineEdit.EchoMode.Password)
+        field("Username", self.entry_username, username_column)
+        field("Password", self.entry_password, password_column)
+        account_row.addLayout(username_column)
+        account_row.addLayout(password_column)
+        cred.addLayout(account_row)
+        actions = QHBoxLayout()
+        actions.addWidget(button("Save / update", self.save_password))
+        actions.addWidget(button("Retrieve", self.retrieve_password, True))
+        cred.addLayout(actions)
+        columns.addWidget(credentials, 6)
+        layout.addLayout(columns)
 
-        # Generated / Retrieved password display
-        row_result = QHBoxLayout()
-        self.lbl_result_title = QLabel("Generated Password:")
+        result = QGroupBox("04  /  Your result")
+        result_layout = QVBoxLayout(result)
+        self.lbl_result_title = QLabel("Generated or retrieved password")
+        self.lbl_result_title.setObjectName("fieldLabel")
+        result_layout.addWidget(self.lbl_result_title)
+        result_row = QHBoxLayout()
         self.entry_result = QLineEdit()
+        self.entry_result.setObjectName("result")
         self.entry_result.setReadOnly(True)
-        row_result.addWidget(self.lbl_result_title)
-        row_result.addWidget(self.entry_result)
-        layout.addLayout(row_result)
-
-        # ── Action buttons ───────────────────────────────
-        row_btn1 = QHBoxLayout()
-        self.btn_set_master = QPushButton("Set Master Password")
-        self.btn_set_master.clicked.connect(self.set_master_password)
-        self.btn_set_master.hide()
-
-        btn_hash = QPushButton("Hash Password")
-        btn_hash.clicked.connect(self.hash_password)
-
-        btn_save = QPushButton("Save / Update")
-        btn_save.clicked.connect(self.save_password)
-
-        row_btn1.addWidget(self.btn_set_master)
-        row_btn1.addWidget(btn_hash)
-        row_btn1.addWidget(btn_save)
-        layout.addLayout(row_btn1)
-
-        row_btn2 = QHBoxLayout()
-        btn_retrieve = QPushButton("Retrieve Password")
-        btn_retrieve.clicked.connect(self.retrieve_password)
-
-        btn_copy = QPushButton("Copy to Clipboard")
-        btn_copy.clicked.connect(self.copy_password_to_clipboard)
-
-        row_btn2.addWidget(btn_retrieve)
-        row_btn2.addWidget(btn_copy)
-        layout.addLayout(row_btn2)
-
+        self.entry_result.setPlaceholderText("Your password will appear here")
+        self.entry_result.setAccessibleName("Generated or retrieved password")
+        result_row.addWidget(self.entry_result, 1)
+        result_row.addWidget(button("Copy", self.copy_password_to_clipboard))
+        result_layout.addLayout(result_row)
+        layout.addWidget(result)
         layout.addStretch()
+
+        footer = QHBoxLayout()
+        note = QLabel("LOCAL VAULT  /  Stored on this device")
+        note.setObjectName("hint")
+        footer.addWidget(note)
+        footer.addStretch()
+        version = QLabel(f"v{VERSION}")
+        version.setObjectName("hint")
+        footer.addWidget(version)
+        outer.addLayout(footer)
 
         # ── Menu ─────────────────────────────────────────
         menubar = self.menuBar()
@@ -222,6 +252,7 @@ class PasswordGenie(QMainWindow):
 
     def lock_vault(self):
         self.master_password_verified = False
+        self.status_label.setText("VAULT LOCKED")
         self.combo_platforms.clear()
         self.combo_platforms.setEnabled(False)
         self.entry_username.clear()
@@ -244,6 +275,7 @@ class PasswordGenie(QMainWindow):
             self.btn_set_master.hide()
             self.update_platform_combobox()
             self.combo_platforms.setEnabled(True)
+            self.status_label.setText("VAULT UNLOCKED")
             QMessageBox.information(self, "Success", "Master password set successfully.")
         except Exception as exc:
             QMessageBox.critical(self, "Error", str(exc))
@@ -256,6 +288,7 @@ class PasswordGenie(QMainWindow):
             self.btn_set_master.hide()
             self.update_platform_combobox()
             self.combo_platforms.setEnabled(True)
+            self.status_label.setText("VAULT UNLOCKED")
             QMessageBox.information(self, "Success", "Master password verified successfully.")
         except Exception as exc:
             QMessageBox.critical(self, "Error", str(exc))
@@ -400,14 +433,7 @@ class PasswordGenie(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    app.setStyleSheet("""
-        QWidget { background: #20242b; color: #f0f2f5; }
-        QLineEdit, QComboBox, QTextEdit { background: #13171d; padding: 5px; }
-        QPushButton { background: #354456; border-radius: 4px; padding: 7px; }
-        QPushButton:hover { background: #46637c; }
-        QGroupBox { border: 1px solid #586374; margin-top: 12px; padding-top: 12px; }
-    """)
+    apply_theme(app)
     try:
         window = PasswordGenie()
     except Exception as exc:
